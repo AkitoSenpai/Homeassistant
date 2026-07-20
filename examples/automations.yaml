@@ -1,0 +1,40 @@
+# ============================================================================
+# Exemples d'automations utilisant Gemma Assistant
+# ============================================================================
+
+# 1) Recevoir une notification avec la météo du jour chaque matin
+- alias: "Meteo du matin via Gemma"
+  trigger:
+    - platform: time
+      at: "07:30:00"
+  action:
+    - service: conversation.process
+      data:
+        agent_id: conversation.gemma_assistant
+        text: "Donne-moi la météo d'aujourd'hui à Lyon en deux phrases."
+    # La réponse arrive dans conversation.respond, à router vers TTS
+    # via l'UI (Assist) ou via une automation "événement".
+
+# 2) Bouton physique -> question à Gemma
+- alias: "Bouton physique -> Gemma"
+  trigger:
+    - platform: state
+      entity_id: binary_sensor.bouton_cuisine
+      to: "on"
+  action:
+    - service: conversation.process
+      data:
+        agent_id: conversation.gemma_assistant
+        text: "Quelles lumières sont allumées en ce moment ?"
+
+# 3) Cuisiner : recette du jour
+- alias: "Recette du soir"
+  trigger:
+    - platform: state
+      entity_id: input_boolean.recette_demain
+      to: "on"
+  action:
+    - service: conversation.process
+      data:
+        agent_id: conversation.gemma_assistant
+        text: "Trouve-moi une recette rapide pour ce soir avec du poulet et des courgettes."
