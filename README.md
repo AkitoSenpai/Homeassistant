@@ -16,8 +16,11 @@
 - 🎤 **Compatible pipeline vocal** Home Assistant (TTS + STT + wake word)
 - 💬 **Historique de conversation** (mémoire des 10 derniers échanges)
 - 🏡 **Contrôle domotique** (allumer lumières, lire états, appeler services…)
+- 🖥️ **Multi-machines** : IA et outils sur un serveur dédié, HA sur une autre machine
 
 ## 🏗️ Architecture
+
+### Option 1 : tout sur la même machine
 
 ```
 ┌──────────────────┐    ┌─────────────────┐
@@ -31,11 +34,26 @@
 │  Satellites      │◀───│  (ce composant) │
 │  (ESPHome, etc.) │    └────────┬────────┘
 └──────────────────┘             │
-                                 ├──▶ Ollama (Gemma 3n E4B)
-                                 ├──▶ SearXNG (recherche)
-                                 └──▶ Home Assistant API
-                                          (entités / services)
+                                 ├──▶ Ollama (Gemma 3n E4B) localhost
+                                 ├──▶ SearXNG (recherche)  localhost
+                                 └──▶ Home Assistant API   (entités / services)
 ```
+
+### Option 2 : IA sur un serveur distant (recommandé pour grosses configs)
+
+```
+┌──────────────────────────────┐         ┌──────────────────────────────┐
+│  Home Assistant (PC / RPi)   │         │  Serveur Linux               │
+│  192.168.1.10                │   LAN   │  192.168.1.20                │
+│                              │◀───────▶│                              │
+│  - gemma_assistant (UI)      │   HTTP  │  - Ollama  :11434            │
+│  - Piper TTS  (optionnel)    │         │  - SearXNG  :8888            │
+│  - Whisper STT (optionnel)   │         │                              │
+│  - Satellites vocaux         │         │                              │
+└──────────────────────────────┘         └──────────────────────────────┘
+```
+
+👉 Voir [server-setup/docs/DEPLOYMENT.md](server-setup/docs/DEPLOYMENT.md) pour la mise en place.
 
 ## 📦 Pré-requis
 

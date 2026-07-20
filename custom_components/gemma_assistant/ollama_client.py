@@ -36,7 +36,13 @@ class OllamaClient:
         model: str,
         timeout: int = 60,
     ) -> None:
-        """Initialize the Ollama client."""
+        """Initialize the Ollama client.
+
+        base_url: Full URL to the Ollama API, e.g.
+                  - "http://localhost:11434" (local)
+                  - "http://192.168.1.20:11434" (remote server on LAN)
+                  - "https://ollama.example.com" (remote via reverse-proxy)
+        """
         self.hass = hass
         self.base_url = base_url.rstrip("/")
         self.model = model
