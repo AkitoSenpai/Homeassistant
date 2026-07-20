@@ -1,0 +1,37 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Gemma Local Assistant",
+        "description": "Configurez l'agent conversationnel local (Ollama + SearXNG).",
+        "data": {
+          "ollama_url": "URL d'Ollama",
+          "model": "Nom du modèle (ex: gemma3n:e4b)",
+          "searxng_url": "URL de SearXNG"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect_ollama": "Impossible de se connecter à Ollama. Vérifiez qu'il tourne et l'URL.",
+      "cannot_connect_searxng": "Impossible de se connecter à SearXNG. Vérifiez qu'il tourne et l'URL."
+    },
+    "abort": {
+      "already_configured": "Cet agent est déjà configuré."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Options de Gemma Assistant",
+        "data": {
+          "ollama_url": "URL d'Ollama",
+          "searxng_url": "URL de SearXNG",
+          "model": "Modèle",
+          "temperature": "Température (créativité)",
+          "max_tokens": "Tokens max par réponse",
+          "system_prompt": "Prompt système (personnalité)"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,24 @@
+# ============================================================================
+# /etc/systemd/system/ai-server-monitor.service
+# /etc/systemd/system/ai-server-monitor.timer
+# ============================================================================
+# Healthcheck automatique toutes les 15 minutes — écrit dans le journal
+# Tu peux le consulter avec : journalctl -u ai-server-monitor -f
+# ============================================================================
+
+[Unit]
+Description=AI Server Healthcheck (Ollama + SearXNG)
+After=network-online.target ollama.service docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/ai-server/healthcheck.sh
+StandardOutput=journal
+StandardError=journal
+
+# Dossier où mettre le script
+# (par défaut /opt/ai-server, copier healthcheck.sh ici au préalable)
+# sudo mkdir -p /opt/ai-server
+# sudo cp healthcheck.sh /opt/ai-server/
+# sudo chmod +x /opt/ai-server/healthcheck.sh
