@@ -1,0 +1,89 @@
+name: Android CI
+
+on:
+  push:
+    branches: [ main, master, 'arena/**' ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Cache Gradle packages
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.gradle/caches
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-
+          
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      working-directory: ./android-chatgpt-app
+      
+    - name: Build debug APK
+      run: ./gradlew assembleDebug
+      working-directory: ./android-chatgpt-app
+      
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: gemma-chat-debug
+        path: android-chatgpt-app/app/build/outputs/apk/debug/*.apk
+        retention-days: 30
+        
+    - name: Build release APK
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      run: ./gradlew assembleRelease
+      working-directory: ./android-chatgpt-app
+      
+    - name: Upload Release APK
+      if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+      uses: actions/upload-artifact@v4
+      with:
+        name: gemma-chat-release
+        path: android-chatgpt-app/app/build/outputs/apk/release/*.apk
+        retention-days: 90
+
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+      working-directory: ./android-chatgpt-app
+      
+    - name: Run unit tests
+      run: ./gradlew test
+      working-directory: ./android-chatgpt-app
