@@ -13,7 +13,7 @@ from .ollama_client import OllamaClient
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[Platform] = []
+PLATFORMS: list[Platform] = [Platform.CONVERSATION]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -38,12 +38,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
     hass.data[DOMAIN][entry.entry_id] = ollama_client
 
-    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Enregistrer l'agent de conversation
+    # Créer l'agent de conversation AVANT le forward (la plateforme
+    # conversation le récupère via get_agent() et l'ajoute comme entité)
     from .conversation import async_register_agent
 
     await async_register_agent(hass, entry)
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     return True
 
@@ -52,13 +53,12 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("Unloading Gemma Local Assistant entry: %s", entry.entry_id)
 
-    # Désenregistrer l'agent
-    from .conversation import async_unregister_agent
-
-    async_unregister_agent(hass, entry)
-
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
+        # Désenregistrer l'agent
+        from .conversation import async_unregister_agent
+
+        async_unregister_agent(hass, entry)
         ollama_client: OllamaClient = hass.data[DOMAIN].pop(entry.entry_id)
         await ollama_client.async_close()
 

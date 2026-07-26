@@ -53,10 +53,15 @@ def _french_now() -> str:
 
 
 async def async_register_agent(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Register a conversation agent for this config entry."""
+    """Create and store a conversation agent for this config entry.
+
+    The entity is then added to Home Assistant by the conversation
+    platform hook (async_setup_entry below), which also handles the
+    entity lifecycle callbacks — do NOT call async_added_to_hass()
+    manually here.
+    """
     agent = GemmaConversationEntity(hass, entry)
     _AGENTS[entry.entry_id] = agent
-    await agent.async_added_to_hass()
 
 
 def async_unregister_agent(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -270,17 +275,19 @@ class GemmaConversationEntity(ConversationEntity):
 
 
 # ---------------------------------------------------------------------------
-# Optional: a platform setup that adds the entity to the entity registry.
-# Home Assistant's conversation integration auto-discovers ConversationEntity
-# subclasses, so we don't strictly need this, but it makes the entity visible
-# in the UI.
+# Conversation platform hook.
+# With PLATFORMS = [Platform.CONVERSATION] in __init__.py, Home Assistant
+# calls this right after the component setup. A ConversationEntity instance
+# is invisible to HA (no state, not selectable in Assist) until it is added
+# through async_add_entities — this hook is what makes
+# 'conversation.gemma_assistant' actually exist.
 # ---------------------------------------------------------------------------
-async def async_setup_entry_platform(
+async def async_setup_entry(
     hass: HomeAssistant,
     entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
-    """Set up the conversation entity from a config entry."""
+    """Add the conversation entity created in async_register_agent."""
     agent = get_agent(hass, entry.entry_id)
     if agent is not None:
         async_add_entities([agent])
