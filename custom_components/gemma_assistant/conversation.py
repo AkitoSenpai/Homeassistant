@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 
 from homeassistant.components.conversation import (
@@ -14,6 +15,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+import homeassistant.util.dt as dt_util
 
 from .const import (
     CONVERSATION_HISTORY_LIMIT,
@@ -24,6 +26,9 @@ from .const import (
     DEFAULT_SYSTEM_PROMPT,
     DEFAULT_TEMPERATURE,
     DOMAIN,
+    FRENCH_MONTHS,
+    FRENCH_WEEKDAYS,
+    SEARCH_TRIGGER_PATTERN,
 )
 from .ollama_client import OllamaClient, OllamaError
 from .tools import build_default_registry
@@ -32,6 +37,19 @@ _LOGGER = logging.getLogger(__name__)
 
 # Registry of conversation agents by config entry id
 _AGENTS: dict[str, "GemmaConversationEntity"] = {}
+
+# Pre-compiled trigger for questions that need fresh web data
+_SEARCH_TRIGGER_RE = re.compile(SEARCH_TRIGGER_PATTERN, re.IGNORECASE)
+
+
+def _french_now() -> str:
+    """Return the current local date/time formatted in French
+    (locale-independent, the HA container locale is usually English)."""
+    now = dt_util.now()
+    return (
+        f"{_FRENCH_WEEKDAYS[now.weekday()]} {now.day} "
+        f"{_FRENCH_MONTHS[now.month - 1]} {now.year}, {now:%H:%M}"
+    )
 
 
 async def async_register_agent(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -92,6 +110,17 @@ class GemmaConversationEntity(ConversationEntity):
         """Return the Ollama client stored on the config entry."""
         return self.hass.data[DOMAIN][self.entry.entry_id]
 
+    def _build_system_prompt(self) -> str:
+        """System prompt = user prompt + current date/time context.
+
+        Without this, the model has no idea what day it is and answers
+        time-relative questions from its (stale) training window.
+        """
+        return (
+            f"{self._system_prompt}\n\n"
+            f"Date et heure actuelles : {_french_now()}."
+        )
+
     # ------------------------------------------------------------------
     # ConversationEntity interface
     # ------------------------------------------------------------------
@@ -105,21 +134,56 @@ class GemmaConversationEntity(ConversationEntity):
         if not text:
             return await self._build_result(chat_log, "Je n'ai rien reçu.")
 
-        # Build messages: system + history + new user message
+        # Build messages: system (with live date/time) + history + new user msg
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": self._system_prompt}
+            {"role": "system", "content": self._build_system_prompt()}
         ]
         # Add bounded history
         for m in self._history[-CONVERSATION_HISTORY_LIMIT:]:
             messages.append(m)
         messages.append({"role": "user", "content": text})
 
+        tools = self._tools.to_ollama_tools()
+
+        # --------------------------------------------------------------
+        # Pre-emptive web search for time-sensitive questions.
+        # Small local models (Gemma 3n) rarely decide on their own to call
+        # web_search and otherwise answer from stale training data
+        # (e.g. "prix du bitcoin" -> valeur de 2023). Detect such questions
+        # deterministically and inject fresh SearXNG results into the
+        # context instead; it is also faster (one LLM pass instead of two).
+        # --------------------------------------------------------------
+        if _SEARCH_TRIGGER_RE.search(text) and self._tools.get("web_search"):
+            _LOGGER.debug("Time-sensitive question, running web search: %s", text)
+            search_result = await self._tools.async_call(
+                "web_search", {"query": text, "max_results": 5}
+            )
+            if search_result and not search_result.startswith(
+                ("Erreur", "Impossible")
+            ):
+                messages.append(
+                    {
+                        "role": "system",
+                        "content": (
+                            "Voici des résultats de recherche web à jour pour "
+                            "répondre à la question de l'utilisateur :\n"
+                            f"{search_result}\n"
+                            "Base ta réponse sur ces résultats (PAS sur ta "
+                            "mémoire interne) et précise la date ou la source "
+                            "du chiffre cité."
+                        ),
+                    }
+                )
+                # Fresh results already in context: answer directly without
+                # offering the tools again (avoids a second LLM round-trip).
+                tools = None
+
         try:
             # Tool-calling loop
             for _ in range(5):  # safety bound on tool calls
                 response = await self.ollama.async_chat(
                     messages=messages,
-                    tools=self._tools.to_ollama_tools(),
+                    tools=tools,
                     temperature=self._temperature,
                     max_tokens=self._max_tokens,
                 )

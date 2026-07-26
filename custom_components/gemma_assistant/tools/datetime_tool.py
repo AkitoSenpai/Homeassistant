@@ -6,7 +6,18 @@ from typing import Any
 
 import homeassistant.util.dt as dt_util
 
+from ..const import FRENCH_MONTHS, FRENCH_WEEKDAYS
 from .base import Tool
+
+
+def _format_fr(now: datetime, tz_label: str) -> str:
+    """Format a datetime in French (locale-independent)."""
+    return (
+        f"Date: {FRENCH_WEEKDAYS[now.weekday()]} {now.day} "
+        f"{FRENCH_MONTHS[now.month - 1]} {now.year}\n"
+        f"Heure: {now:%H:%M:%S}\n"
+        f"Fuseau: {tz_label}"
+    )
 
 
 class DateTimeTool(Tool):
@@ -34,19 +45,17 @@ class DateTimeTool(Tool):
 
     async def async_call(self, timezone: str | None = None) -> str:
         """Return the current date/time in the requested timezone."""
+        tz_label = str(dt_util.DEFAULT_TIME_ZONE)
         if timezone:
             try:
                 from zoneinfo import ZoneInfo
 
                 tz = ZoneInfo(timezone)
                 now = datetime.now(tz)
-                return now.strftime(
-                    "Date: %A %d %B %Y\nHeure: %H:%M:%S\nFuseau: %s"
-                ) % timezone
+                tz_label = timezone
             except Exception:  # noqa: BLE001
                 # Fallback to HA local time
-                pass
-        now = dt_util.now()
-        return now.strftime(
-            "Date: %A %d %B %Y\nHeure: %H:%M:%S\nFuseau: %s"
-        ) % str(now.tzinfo)
+                now = dt_util.now()
+        else:
+            now = dt_util.now()
+        return _format_fr(now, tz_label)

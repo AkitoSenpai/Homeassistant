@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import aiohttp
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .base import Tool
 
@@ -55,7 +56,7 @@ class SearXNGTool(Tool):
         url = f"{self.base_url}/search?{urlencode(params)}"
 
         try:
-            session = self.hass.helpers.aiohttp_client.async_get_clientsession(self.hass)
+            session = async_get_clientsession(self.hass)
             async with session.get(
                 url,
                 timeout=aiohttp.ClientTimeout(total=15),
