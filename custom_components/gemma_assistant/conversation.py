@@ -151,7 +151,14 @@ class GemmaConversationEntity(ConversationEntity):
         chat_log: intent.ChatLog,
     ) -> ConversationResult:
         """Process a user utterance and return a response."""
-        response_text = await self.async_process_text(user_input.text)
+        try:
+            response_text = await self.async_process_text(user_input.text or "")
+        except Exception as err:  # noqa: BLE001
+            # Never let an exception escape to the Assist pipeline: it would
+            # be swallowed as "Unexpected error during intent recognition".
+            # Show a readable message instead; the real traceback is logged.
+            _LOGGER.exception("Unhandled error while processing message")
+            response_text = f"Erreur interne de l'agent : {err}"
         return await self._build_result(chat_log, response_text)
 
     async def async_process_text(self, text: str) -> str:
