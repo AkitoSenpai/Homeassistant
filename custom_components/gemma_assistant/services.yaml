@@ -1,0 +1,13 @@
+ask:
+  name: Poser une question à Gemma
+  description: >-
+    Envoie un message à l'agent Gemma (pipeline complet : date/heure injectée,
+    recherche web préventive si besoin) et retourne sa réponse en texte.
+  fields:
+    text:
+      name: Message
+      description: Le texte à envoyer à Gemma.
+      required: true
+      selector:
+        text:
+          multiline: true

@@ -7,6 +7,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 from .ollama_client import OllamaClient
@@ -14,6 +15,18 @@ from .ollama_client import OllamaClient
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS: list[Platform] = [Platform.CONVERSATION]
+
+
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Gemma component itself (sidebar panel, WS chat, action).
+
+    Runs once when the domain is first loaded, before the first config
+    entry — Home Assistant calls it even for a config-flow only integration.
+    """
+    from .panel import async_setup_app
+
+    await async_setup_app(hass)
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

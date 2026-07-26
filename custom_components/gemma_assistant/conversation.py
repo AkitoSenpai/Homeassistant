@@ -73,6 +73,11 @@ def get_agent(hass: HomeAssistant, entry_id: str) -> "GemmaConversationEntity | 
     return _AGENTS.get(entry_id)
 
 
+def get_first_agent() -> "GemmaConversationEntity | None":
+    """Return any registered agent (first config entry), for panel/action use."""
+    return next(iter(_AGENTS.values()), None)
+
+
 class GemmaConversationEntity(ConversationEntity):
     """Conversation agent powered by Gemma (via Ollama) + tools."""
 
@@ -146,9 +151,20 @@ class GemmaConversationEntity(ConversationEntity):
         chat_log: intent.ChatLog,
     ) -> ConversationResult:
         """Process a user utterance and return a response."""
-        text = user_input.text.strip()
+        response_text = await self.async_process_text(user_input.text)
+        return await self._build_result(chat_log, response_text)
+
+    async def async_process_text(self, text: str) -> str:
+        """Process a raw user message and return the reply as plain text.
+
+        Single message engine shared by the conversation pipeline, the
+        sidebar panel (WebSocket command) and the 'gemma_assistant.ask'
+        action — the pre-emptive web search and live date/time context
+        apply to all of them.
+        """
+        text = text.strip()
         if not text:
-            return await self._build_result(chat_log, "Je n'ai rien reçu.")
+            return "Je n'ai rien reçu."
 
         # Build messages: system (with live date/time) + history + new user msg
         messages: list[dict[str, Any]] = [
@@ -216,7 +232,7 @@ class GemmaConversationEntity(ConversationEntity):
                     self._history.append(
                         {"role": "assistant", "content": assistant_text}
                     )
-                    return await self._build_result(chat_log, assistant_text)
+                    return assistant_text
 
                 # Append the assistant's tool-call message
                 messages.append(
@@ -242,23 +258,14 @@ class GemmaConversationEntity(ConversationEntity):
                     )
 
             # Too many iterations
-            return await self._build_result(
-                chat_log,
-                "J'ai fait trop d'appels d'outils, je m'arrête là.",
-            )
+            return "J'ai fait trop d'appels d'outils, je m'arrête là."
 
         except OllamaError as err:
             _LOGGER.exception("Ollama error during conversation")
-            return await self._build_result(
-                chat_log,
-                f"Désolé, erreur avec le modèle local : {err}",
-            )
+            return f"Désolé, erreur avec le modèle local : {err}"
         except Exception as err:  # noqa: BLE001
             _LOGGER.exception("Unexpected error during conversation")
-            return await self._build_result(
-                chat_log,
-                f"Erreur inattendue : {err}",
-            )
+            return f"Erreur inattendue : {err}"
 
     async def _build_result(
         self,

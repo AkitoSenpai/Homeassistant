@@ -1,7 +1,7 @@
 {
   "domain": "gemma_assistant",
   "name": "Gemma Local Assistant",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "documentation": "https://github.com/your-repo/gemma-assistant",
   "issue_tracker": "https://github.com/your-repo/gemma-assistant/issues",
   "codeowners": ["@you"],
@@ -10,6 +10,6 @@
   ],
   "iot_class": "local_polling",
   "config_flow": true,
-  "dependencies": [],
+  "dependencies": ["websocket_api"],
   "after_dependencies": ["conversation"]
 }
