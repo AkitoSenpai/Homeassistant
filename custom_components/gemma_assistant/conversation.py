@@ -76,7 +76,18 @@ class GemmaConversationEntity(ConversationEntity):
     _attr_supported_features = (
         ConversationEntityFeature.CONTROL
     )
-    _attr_supported_languages = ["fr"]
+
+    @property
+    def supported_languages(self) -> list[str]:
+        """Return the list of languages this agent handles.
+
+        Note: on recent HA versions, ConversationEntity declares
+        'supported_languages' as an *abstract property*, so the usual
+        _attr_supported_languages shorthand does NOT satisfy it — a real
+        override named exactly 'supported_languages' is required,
+        otherwise instantiation raises TypeError (abstract class).
+        """
+        return ["fr"]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the agent."""
