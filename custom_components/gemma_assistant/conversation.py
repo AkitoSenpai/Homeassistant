@@ -9,7 +9,6 @@ from homeassistant.components.conversation import (
     ConversationEntityFeature,
     ConversationInput,
     ConversationResult,
-    async_should_expose,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -59,6 +58,7 @@ class GemmaConversationEntity(ConversationEntity):
     _attr_supported_features = (
         ConversationEntityFeature.CONTROL
     )
+    _attr_supported_languages = ["fr"]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the agent."""
