@@ -9,7 +9,6 @@ from homeassistant.components.conversation import (
     ConversationEntityFeature,
     ConversationInput,
     ConversationResult,
-    async_should_expose,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
