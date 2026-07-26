@@ -47,8 +47,8 @@ def _french_now() -> str:
     (locale-independent, the HA container locale is usually English)."""
     now = dt_util.now()
     return (
-        f"{_FRENCH_WEEKDAYS[now.weekday()]} {now.day} "
-        f"{_FRENCH_MONTHS[now.month - 1]} {now.year}, {now:%H:%M}"
+        f"{FRENCH_WEEKDAYS[now.weekday()]} {now.day} "
+        f"{FRENCH_MONTHS[now.month - 1]} {now.year}, {now:%H:%M}"
     )
 
 
