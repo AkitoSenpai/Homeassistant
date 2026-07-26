@@ -58,6 +58,7 @@ class GemmaConversationEntity(ConversationEntity):
     _attr_supported_features = (
         ConversationEntityFeature.CONTROL
     )
+    _attr_supported_languages = ["fr"]
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the agent."""
